@@ -5,4 +5,4 @@ def divide(a, b):
 
 def fetch(url):
     import requests
-    return requests.get(url).json()  # security: SSRF risk
+    return requests.get(url).json()  # security: SSRF risk ak
