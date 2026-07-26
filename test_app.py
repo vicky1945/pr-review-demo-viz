@@ -39,10 +39,16 @@ class TestIsSafeUrl:
         assert is_safe_url("https://other.com/data") is False
 
     def test_localhost_blocked(self):
-        """Should block localhost/loopback."""
+        """Should block localhost string."""
         assert is_safe_url("https://localhost/data") is False
+
+    def test_all_loopback_addresses_blocked(self):
+        """Should block all loopback IP addresses, not just 127.0.0.1."""
         assert is_safe_url("https://127.0.0.1/data") is False
+        assert is_safe_url("https://127.0.0.2/data") is False
+        assert is_safe_url("https://127.255.255.255/data") is False
         assert is_safe_url("https://0.0.0.0/data") is False
+        assert is_safe_url("https://[::1]/data") is False
 
     def test_invalid_scheme(self):
         """Should reject non-http(s) schemes."""
@@ -53,6 +59,12 @@ class TestIsSafeUrl:
         """Should handle malformed URLs."""
         assert is_safe_url("not-a-url") is False
         assert is_safe_url("") is False
+
+    def test_custom_allowed_hosts(self):
+        """Should support custom allowed_hosts parameter."""
+        custom_hosts = {"internal.api.com"}
+        assert is_safe_url("https://internal.api.com/data", allowed_hosts=custom_hosts) is True
+        assert is_safe_url("https://api.example.com/data", allowed_hosts=custom_hosts) is False
 
 
 class TestFetch:

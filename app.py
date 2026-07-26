@@ -1,6 +1,10 @@
+import ipaddress
 from urllib.parse import urlparse
 
 import requests
+
+
+ALLOWED_HOSTS = {"api.example.com"}
 
 
 def divide(a: float, b: float) -> float:
@@ -14,15 +18,13 @@ def divide(a: float, b: float) -> float:
     return a / b
 
 
-def is_safe_url(url: str) -> bool:
+def is_safe_url(url: str, allowed_hosts: set[str] = ALLOWED_HOSTS) -> bool:
     """Check if a URL is safe to fetch from (allowlist validation).
 
-    Allowed hosts: api.example.com
+    Allowed hosts: api.example.com (configurable)
     Must use http or https scheme.
-    Blocks localhost and loopback addresses.
+    Blocks all loopback and localhost addresses (127.0.0.0/8, ::1, etc).
     """
-    allowed_hosts = {"api.example.com"}
-
     try:
         parsed = urlparse(url)
     except Exception:
@@ -37,9 +39,15 @@ def is_safe_url(url: str) -> bool:
     if not hostname:
         return False
 
-    # Block localhost/loopback
-    if hostname in ("localhost", "127.0.0.1", "0.0.0.0"):
-        return False
+    # Block loopback/localhost addresses using ipaddress module
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_loopback or ip.is_unspecified:
+            return False
+    except ValueError:
+        # Not an IP literal; check if it's the string "localhost"
+        if hostname.lower() == "localhost":
+            return False
 
     # Check allowlist
     return hostname in allowed_hosts
@@ -71,4 +79,3 @@ def fetch(url: str, timeout: float = 5.0) -> dict:
         raise ValueError(f"Expected JSON dict, got {type(data).__name__}")
 
     return data
-
