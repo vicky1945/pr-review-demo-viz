@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
+import requests
 from app import divide, is_safe_url, fetch
 
 
@@ -90,8 +91,18 @@ class TestFetch:
 
     @patch("app.requests.get")
     def test_fetch_http_error(self, mock_get):
-        """fetch should propagate HTTP errors."""
-        mock_get.side_effect = Exception("HTTP 404")
-        
-        with pytest.raises(Exception, match="HTTP 404"):
+        """fetch should propagate HTTP errors raised by raise_for_status()."""
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Client Error")
+        mock_get.return_value = mock_response
+
+        with pytest.raises(requests.exceptions.HTTPError, match="404"):
+            fetch("https://api.example.com/data")
+
+    @patch("app.requests.get")
+    def test_fetch_network_error(self, mock_get):
+        """fetch should propagate network-level errors from requests.get."""
+        mock_get.side_effect = requests.exceptions.ConnectionError("connection refused")
+
+        with pytest.raises(requests.exceptions.ConnectionError):
             fetch("https://api.example.com/data")

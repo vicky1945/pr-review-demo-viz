@@ -1,6 +1,4 @@
-import os
 from urllib.parse import urlparse
-from typing import Any
 
 import requests
 
@@ -58,8 +56,9 @@ def fetch(url: str, timeout: float = 5.0) -> dict:
         The JSON response as a dict.
     
     Raises:
-        ValueError: If URL is not allowed.
+        ValueError: If URL is not allowed or response is not a JSON dict.
         requests.exceptions.RequestException: On network/HTTP errors.
+        requests.exceptions.JSONDecodeError: If response body is not valid JSON.
     """
     if not is_safe_url(url):
         raise ValueError(f"URL not allowed: {url}")
