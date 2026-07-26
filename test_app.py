@@ -28,6 +28,11 @@ class TestIsSafeUrl:
         assert is_safe_url("https://api.example.com/data") is True
         assert is_safe_url("http://api.example.com/data") is True
 
+    def test_allowed_url_with_port_and_case(self):
+        """Should handle URLs with explicit ports and mixed case."""
+        assert is_safe_url("https://api.example.com:8443/data") is True
+        assert is_safe_url("HTTPS://API.EXAMPLE.COM/data") is True
+
     def test_disallowed_host(self):
         """Should reject non-allowlisted hosts."""
         assert is_safe_url("https://evil.com/data") is False
@@ -67,6 +72,7 @@ class TestFetch:
 
         result = fetch("https://api.example.com/data")
         assert result == {"key": "value"}
+        mock_response.raise_for_status.assert_called_once()
         mock_get.assert_called_once_with("https://api.example.com/data", timeout=5.0)
 
     @patch("app.requests.get")
@@ -105,4 +111,14 @@ class TestFetch:
         mock_get.side_effect = requests.exceptions.ConnectionError("connection refused")
 
         with pytest.raises(requests.exceptions.ConnectionError):
+            fetch("https://api.example.com/data")
+
+    @patch("app.requests.get")
+    def test_fetch_invalid_json(self, mock_get):
+        """fetch should propagate JSONDecodeError for malformed responses."""
+        mock_response = MagicMock()
+        mock_response.json.side_effect = requests.exceptions.JSONDecodeError("msg", "doc", 0)
+        mock_get.return_value = mock_response
+
+        with pytest.raises(requests.exceptions.JSONDecodeError):
             fetch("https://api.example.com/data")
